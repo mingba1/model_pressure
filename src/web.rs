@@ -31,7 +31,7 @@ pub struct AppState {
 
 pub fn build_router(state: Arc<AppState>) -> Router {
     Router::new()
-        .route("/smart_match1", post(handle_smart_match1))
+        .route("/api1", post(handle_api1))
         .route("/streams/peek", get(handle_stream_peek))
         .route("/streams/pending", get(handle_stream_pending))
         .route("/health", get(handle_health))
@@ -77,38 +77,38 @@ async fn handle_health(
     (status_code, Json(health_status))
 }
 
-/// /smart_match1 入口：限流 + 入队 Redis Stream
-async fn handle_smart_match1(
+/// /api1 入口：限流 + 入队 Redis Stream
+async fn handle_api1(
     State(state): State<Arc<AppState>>,
     Json(req): Json<serde_json::Value>,
 ) -> Result<(StatusCode, Json<SubmitResponse>), (StatusCode, String)> {
     let start_time = Instant::now();
     let trace_id = Uuid::new_v4().to_string();
-    let span = tracing::span!(tracing::Level::INFO, "handle_smart_match1", trace_id = %trace_id);
+    let span = tracing::span!(tracing::Level::INFO, "handle_api1", trace_id = %trace_id);
     let _guard = span.enter();
     
-    info!(trace_id = %trace_id, "收到 /smart_match1 请求");
+    info!(trace_id = %trace_id, "收到 /api1 请求");
 
     // 移除入口限流控制 - 让请求直接入队，由 Worker 进行分布式限流
     // if !state.smart_match_limiter.check().await {
-    //     OBS_METRICS.record_rate_limit_rejected("smart_match1");
-    //     OBS_METRICS.record_http_request("POST", "smart_match1", 429, start_time.elapsed());
-    //     warn!(trace_id = %trace_id, "smart_match1 请求被限流");
+    //     OBS_METRICS.record_rate_limit_rejected("api1");
+    //     OBS_METRICS.record_http_request("POST", "api1", 429, start_time.elapsed());
+    //     warn!(trace_id = %trace_id, "api1 请求被限流");
     //     return Err((StatusCode::TOO_MANY_REQUESTS, "rate limited".into()));
     // }
 
     // 组装任务
     let id = Uuid::new_v4().to_string();
     let downstream_url = state.settings.downstream_url.clone()
-        .unwrap_or_else(|| "http://192.168.9.123:63374/smart_match1".to_string());
+        .unwrap_or_else(|| "http://192.168.9.123:63374/api1".to_string());
     let task = serde_json::json!({
         "id": id,
-        "task_name": "smart_match1",
+        "task_name": "api1",
         "payload": req,
         "attempts": 0,
         "created_at": chrono::Utc::now().to_rfc3339(),
         "downstream_url": downstream_url,
-        "rate_limit_key": "smart_match1",
+        "rate_limit_key": "api1",
         "trace_id": trace_id,
     });
 
@@ -132,21 +132,21 @@ async fn handle_smart_match1(
                 OBS_METRICS.update_queue_depth(&stream, len as i64);
             }
             
-            OBS_METRICS.record_task_enqueued("smart_match1");
-            info!(trace_id = %trace_id, task_id = %id, stream = %stream, "smart_match1 任务已入队");
+            OBS_METRICS.record_task_enqueued("api1");
+            info!(trace_id = %trace_id, task_id = %id, stream = %stream, "api1 任务已入队");
         }
         Err(e) => {
             let redis_duration = redis_start.elapsed();
             OBS_METRICS.record_redis_operation("xadd", "error", redis_duration);
-            error!(trace_id = %trace_id, task_id = %id, error = %e, "smart_match1 入队错误");
-            OBS_METRICS.record_http_request("POST", "smart_match1", 500, start_time.elapsed());
+            error!(trace_id = %trace_id, task_id = %id, error = %e, "api1 入队错误");
+            OBS_METRICS.record_http_request("POST", "api1", 500, start_time.elapsed());
             return Err((StatusCode::INTERNAL_SERVER_ERROR, format!("enqueue error: {}", e)));
         }
     }
 
     let total_duration = start_time.elapsed();
-    OBS_METRICS.record_http_request("POST", "smart_match1", 200, total_duration);
-    info!(trace_id = %trace_id, task_id = %id, duration_ms = total_duration.as_millis(), "smart_match1 请求处理完成");
+    OBS_METRICS.record_http_request("POST", "api1", 200, total_duration);
+    info!(trace_id = %trace_id, task_id = %id, duration_ms = total_duration.as_millis(), "api1 请求处理完成");
     
     Ok((
         StatusCode::OK,

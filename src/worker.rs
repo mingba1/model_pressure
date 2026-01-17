@@ -120,9 +120,9 @@ pub async fn run_worker(state: Arc<AppState>) {
                     .unwrap_or_else(|| "default".to_string());
                 
                 // 根据 rate_limit_key 确定限流参数
-                // 优化：大幅提高 smart_match1 的限流值以达到 200 QPS 目标
+                // 优化：大幅提高 api1 的限流值以达到 200 QPS 目标
                 let (capacity, refill_rate) = match rate_limit_key.as_str() {
-                    "smart_match1" => (200, 200),  // 200 QPS for smart_match1 (从 50 提升到 200)
+                    "api1" => (200, 200),  // 200 QPS for api1 (从 50 提升到 200)
                     _ => (100, 100),  // 默认 100 QPS
                 };
                 
@@ -148,7 +148,7 @@ pub async fn run_worker(state: Arc<AppState>) {
                         }
                     }
                     OBS_METRICS.rate_limit_hits_total
-                        .with_label_values(&["smart_match1", "smart_match1"])
+                        .with_label_values(&["api1", "api1"])
                         .inc();
                     sleep(Duration::from_millis(100)).await;
                     continue;
