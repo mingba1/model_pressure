@@ -1,0 +1,41 @@
+# 当前使用的环境（dev/test/prod） 修改此值来切换环境配置
+current_env: dev
+
+# 服务器配置
+server:
+  host: "127.0.0.1"
+  port: 12345
+  internal_api_host: "127.0.0.1:12345"
+
+
+dev:
+  debug: true
+  callback_url: "http://127.0.0.1:12345/api1"
+  # 日志配置（开发环境也配置日志输出）
+  log:
+    level: "info"                    # 日志级别: trace, debug, info, warn, error
+    console: true                     # 是否输出到控制台
+    file: "logs/app.log"              # 日志文件路径（相对于工作目录）
+    max_file_size_mb: 100             # 单个日志文件最大大小（MB）
+    max_files: 10                     # 保留的日志文件数量（按日期滚动）
+    json_format: false                # 是否使用 JSON 格式
+  mysql:
+    url: "mysql+aiomysql://11:22!@127.0.0.1:3306/proxy_limiter"
+    host: "127.0.0.1"
+    port: 3306
+    database: proxy_limiter
+    user: "11"
+    password: "22!"
+    charset: "utf8mb4"
+    pool_size: 50
+    max_overflow: 30
+  redis:
+    url: "redis://:@127.0.0.1:6379/0"
+    host: "127.0.0.1"
+    port: 6379
+    db: 0
+    username: ""
+    password: ""
+    pool_max_size: 50      
+    pool_min_size: 10      
+    pool_timeout: 60       

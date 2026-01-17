@@ -1,0 +1,26 @@
+@startuml
+title High-throughput Gateway Architecture
+
+actor Client
+
+node "Load Balancer" as LB
+node "Gateway (Rust)\n- Accepts /submit\n- XADD -> Redis Stream\n- /metrics" as GW
+node "Redis (Streams)\n- XADD/XREADGROUP\n- token-bucket state" as REDIS
+node "Worker Pool (Rust)\n- XREADGROUP\n- token-bucket Lua\n- forward -> Downstream" as WORKERS
+node "Downstream Service" as DOWN
+database "MySQL / Storage" as DB
+
+Client --> LB --> GW
+GW --> REDIS : XADD
+GW --> Client : 202 + task_id
+WORKERS --> REDIS : XREADGROUP
+WORKERS --> REDIS : token-bucket (EVAL)
+WORKERS --> DOWN : HTTP POST
+DOWN --> DB : persist results
+
+note left of REDIS
+- Monitor XLEN / XPENDING
+- Streams consumer groups
+end note
+
+@enduml
