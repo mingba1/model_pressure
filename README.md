@@ -16,7 +16,7 @@ RUST_LOG=info cargo run --release
 ```
 
 API:
-- POST /smart_match1
+- POST /addData
   - JSON body: 任意 JSON 对象（会作为 payload 传递到下游）
   - Rate limit: 200 QPS (接口级别)
   - 下游限流: 10 QPS (使用 Redis token bucket)
